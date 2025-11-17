@@ -27,6 +27,7 @@
           </div>
           <div v-if="showProfileMenu" class="profile-menu">
             <button class="profile-button" @click="handleProfile">Profile</button>
+            <button class="profile-button" @click="handleDeleteAccount">Delete My Account</button>
             <button class="profile-button" @click="handleLogout">Logout</button>
           </div>
         </div>
@@ -424,6 +425,27 @@ const handleLogout = async () => {
     await authStore.logout()
     router.push('/login')
   }
+  showProfileMenu.value = false
+}
+
+const handleDeleteAccount = async () => {
+  if (
+    !confirm(
+      'This will permanently delete your account and all associated data. This action cannot be undone. Continue?',
+    )
+  ) {
+    showProfileMenu.value = false
+    return
+  }
+
+  const result = await authStore.deleteAccount()
+  if (result.success) {
+    alert('Your account has been deleted successfully.')
+    router.push('/login')
+  } else if (result.error) {
+    alert(`Failed to delete account: ${result.error}`)
+  }
+
   showProfileMenu.value = false
 }
 

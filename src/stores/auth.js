@@ -5,8 +5,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  deleteUser,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { auth, db } from '../firebase/config'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -181,6 +182,36 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Delete current user account (auth + Firestore document)
+  const deleteAccount = async () => {
+    if (!user.value) {
+      return { success: false, error: 'No user logged in.' }
+    }
+
+    loading.value = true
+    error.value = null
+    try {
+      const uid = user.value.uid
+
+      // Delete Firestore user document
+      await deleteDoc(doc(db, 'users', uid))
+
+      // Delete Firebase Auth user
+      await deleteUser(user.value)
+
+      user.value = null
+      userRole.value = null
+
+      return { success: true }
+    } catch (err) {
+      console.error('Error deleting account:', err)
+      error.value = err.message
+      return { success: false, error: err.message }
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user,
     userRole,
@@ -194,6 +225,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     logout,
+    deleteAccount,
     fetchUserRole,
   }
 })

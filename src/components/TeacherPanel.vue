@@ -10,13 +10,24 @@
       <div class="header-right">
         <div class="profile-container" @click="toggleProfileMenu">
           <div class="profile-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
           <div v-if="showProfileMenu" class="profile-menu">
             <button class="profile-button" @click="handleProfile">Profile</button>
+            <button class="profile-button" @click="handleDeleteAccount">Delete My Account</button>
             <button class="profile-button" @click="handleLogout">Logout</button>
           </div>
         </div>
@@ -27,40 +38,35 @@
       <!-- Sidebar -->
       <aside class="panel-sidebar">
         <nav class="sidebar-nav">
-          <button 
-            class="sidebar-button" 
+          <button
+            class="sidebar-button"
             :class="{ active: activeSection === 'schedule-appointment' }"
             @click="setActiveSection('schedule-appointment')"
           >
             Schedule Appointment
           </button>
-          <button 
-            class="sidebar-button" 
+          <button
+            class="sidebar-button"
             :class="{ active: activeSection === 'approve-cancel' }"
             @click="setActiveSection('approve-cancel')"
           >
             Approve/Cancel Appointment
           </button>
-          <button 
-            class="sidebar-button" 
+          <button
+            class="sidebar-button"
             :class="{ active: activeSection === 'view-messages' }"
             @click="setActiveSection('view-messages')"
           >
             View Messages
           </button>
-          <button 
-            class="sidebar-button" 
+          <button
+            class="sidebar-button"
             :class="{ active: activeSection === 'view-all-appointments' }"
             @click="setActiveSection('view-all-appointments')"
           >
             View All Appointment
           </button>
-          <button 
-            class="sidebar-button logout-button" 
-            @click="handleLogout"
-          >
-            Logout
-          </button>
+          <button class="sidebar-button logout-button" @click="handleLogout">Logout</button>
         </nav>
       </aside>
 
@@ -129,7 +135,7 @@ const components = {
   'schedule-appointment': ScheduleAppointment,
   'approve-cancel': ApproveCancelAppointment,
   'view-messages': ViewMessages,
-  'view-all-appointments': ViewAllAppointments
+  'view-all-appointments': ViewAllAppointments,
 }
 
 const currentComponent = computed(() => {
@@ -159,6 +165,27 @@ const handleLogout = async () => {
     await authStore.logout()
     router.push('/login')
   }
+  showProfileMenu.value = false
+}
+
+const handleDeleteAccount = async () => {
+  if (
+    !confirm(
+      'This will permanently delete your account and all associated data. This action cannot be undone. Continue?',
+    )
+  ) {
+    showProfileMenu.value = false
+    return
+  }
+
+  const result = await authStore.deleteAccount()
+  if (result.success) {
+    alert('Your account has been deleted successfully.')
+    router.push('/login')
+  } else if (result.error) {
+    alert(`Failed to delete account: ${result.error}`)
+  }
+
   showProfileMenu.value = false
 }
 
