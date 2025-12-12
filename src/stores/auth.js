@@ -22,8 +22,30 @@ export const useAuthStore = defineStore('auth', () => {
   const isTeacher = computed(() => userRole.value === 'teacher')
   const isStudent = computed(() => userRole.value === 'student')
 
+  // Clear Firebase auth-related entries so the app starts fresh
+  const clearAuthStorage = () => {
+    try {
+      const storages = [localStorage, sessionStorage]
+      const prefixes = ['firebase:authUser', 'firebase:refreshToken', 'firebase:auth']
+      storages.forEach((storage) => {
+        prefixes.forEach((prefix) => {
+          for (let i = storage.length - 1; i >= 0; i -= 1) {
+            const key = storage.key(i)
+            if (key && key.startsWith(prefix)) {
+              storage.removeItem(key)
+            }
+          }
+        })
+      })
+    } catch (err) {
+      console.warn('Unable to clear auth storage:', err)
+    }
+  }
+
   // Initialize auth state listener
   const initAuth = () => {
+    // Ensure local auth cache is clean on load
+    clearAuthStorage()
     onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         user.value = firebaseUser
@@ -49,17 +71,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Register new user (only student and teacher, not admin)
+  // Register new user (students, teachers, and admins)
   const register = async (email, password, name, role) => {
     loading.value = true
     error.value = null
     try {
-      // Prevent admin registration through this method
-      if (role === 'admin') {
-        error.value = 'Admin accounts cannot be created through registration.'
-        return { success: false, error: 'Admin accounts cannot be created through registration.' }
-      }
-
       // Create user with Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
       const firebaseUser = userCredential.user
@@ -71,8 +87,8 @@ export const useAuthStore = defineStore('auth', () => {
         name: name,
         role: role,
         createdAt: new Date().toISOString(),
-        approved: false, // Admin approval required for second login onwards
-        firstLoginUsed: false, // Track if first login has been used
+        approved: role === 'admin' ? true : false, // Admin accounts require no approval
+        firstLoginUsed: role === 'admin' ? true : false, // Admin accounts start as active
       }
 
       // Add teacher-specific fields if role is teacher
@@ -171,6 +187,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     try {
       await signOut(auth)
+      clearAuthStorage()
       user.value = null
       userRole.value = null
       return { success: true }
